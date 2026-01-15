@@ -6,3 +6,29 @@ This library abstracts the complexity of cryptographic signing and header format
 
 > **⚠️ Status: Under Development**
 > This project is currently a work in progress. APIs may change, and features are still being added.
+
+## Usage
+**1. Manual Proof Generation**
+
+If you need raw control over the DPoP proof generation (e.g., for debugging or non-HTTP protocols), you can use DPopGenerator directly.
+
+```dart
+import 'package:dpop/dpop.dart';
+
+void main() async {
+  final dpop = DPopGenerator();
+
+  final proof = await dpop.createProof(
+    httpMethod: 'POST',
+    httpUrl: 'https://api.example.com/resource',
+    accessToken: 'your-access-token',
+  );
+
+  print('DPoP Header: $proof');
+  print('Key ID: ${await dpop.publicKeyThumbprint}');
+}
+```
+
+**2. Automatic HTTP Signing**
+
+**Work in Progress**
