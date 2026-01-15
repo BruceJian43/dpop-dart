@@ -1,8 +1,8 @@
 import 'dart:convert';
+
+import 'package:dpop/dpop.dart';
 import 'package:test/test.dart';
 import 'package:webcrypto/webcrypto.dart';
-
-import 'package:dpop/src/dpop_generator.dart';
 
 void main() {
   group('DPopGenerator', () {
