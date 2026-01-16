@@ -73,5 +73,52 @@ void main() {
 
       await client.get(Uri.parse('https://api.example.com/public'));
     });
+
+    test(
+      'retries automatically with new nonce when server returns 401 + DPoP-Nonce',
+      () async {
+        int callCount = 0;
+        const expectedNonce = 'server-provided-nonce-123';
+
+        final mockInner = MockClient((request) async {
+          callCount++;
+
+          if (callCount == 1) {
+            expect(request.headers.containsKey('DPoP'), isTrue);
+            return http.Response(
+              'Unauthorized',
+              HttpStatus.unauthorized,
+              headers: {'dpop-nonce': expectedNonce},
+            );
+          }
+
+          if (callCount == 2) {
+            final parts = request.headers['DPoP']!.split('.');
+            final payload = jsonDecode(
+              utf8.decode(base64Url.decode(base64.normalize(parts[1]))),
+            );
+            expect(payload['nonce'], expectedNonce);
+            return http.Response('Success', HttpStatus.ok);
+          }
+
+          throw Exception('Too many calls');
+        });
+
+        final client = DPopHttpClient(
+          client: mockInner,
+          generator: generator,
+          getAccessToken: () async => 'token',
+        );
+
+        final response = await client.post(
+          Uri.parse('https://api.example.com/retry-test'),
+          body: {'key': 'value'}, // Add body to ensure copying works
+        );
+
+        expect(response.statusCode, 200);
+        expect(response.body, 'Success');
+        expect(callCount, 2); // Ensure it actually retried
+      },
+    );
   });
 }

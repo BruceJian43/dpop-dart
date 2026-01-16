@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:http/http.dart' as http;
 import 'dpop_generator.dart';
 
@@ -6,6 +8,8 @@ class DPopHttpClient extends http.BaseClient {
   final DPopGenerator _generator;
   final Future<String?> Function() _getAccessToken;
   final bool _isInternalClient;
+
+  String? _lastNonce;
 
   DPopHttpClient({
     Future<String?> Function()? getAccessToken,
@@ -21,11 +25,48 @@ class DPopHttpClient extends http.BaseClient {
   @override
   Future<http.StreamedResponse> send(http.BaseRequest request) async {
     final accessToken = await _getAccessToken();
+    await _signRequest(request, accessToken, nonce: _lastNonce);
+    final response = await _httpClient.send(request);
+    _updateNonce(response.headers);
 
+    if (response.statusCode != HttpStatus.unauthorized ||
+        !response.headers.containsKey('dpop-nonce')) {
+      // No need to handle nonce retry logic here.
+      return response;
+    }
+
+    if (_lastNonce == null || _lastNonce!.isEmpty) {
+      return response;
+    }
+
+    final retryRequest = _tryCopyRequest(request);
+    if (retryRequest == null) {
+      return response;
+    }
+    await response.stream.drain();
+
+    await _signRequest(retryRequest, accessToken, nonce: _lastNonce);
+    final retryResponse = await _httpClient.send(retryRequest);
+    _updateNonce(retryResponse.headers);
+    return retryResponse;
+  }
+
+  void _updateNonce(Map<String, String> headers) {
+    if (headers.containsKey('dpop-nonce')) {
+      _lastNonce = headers['dpop-nonce'];
+    }
+  }
+
+  Future<void> _signRequest(
+    http.BaseRequest request,
+    String? accessToken, {
+    String? nonce,
+  }) async {
     final proof = await _generator.createProof(
       httpMethod: request.method,
       httpUrl: request.url.toString(),
       accessToken: accessToken,
+      nonce: nonce,
     );
 
     request.headers['DPoP'] = proof;
@@ -33,8 +74,22 @@ class DPopHttpClient extends http.BaseClient {
     if (accessToken != null) {
       request.headers['Authorization'] = 'DPoP $accessToken';
     }
+  }
 
-    return _httpClient.send(request);
+  http.BaseRequest? _tryCopyRequest(http.BaseRequest original) {
+    if (original is http.Request) {
+      return http.Request(original.method, original.url)
+        ..followRedirects = original.followRedirects
+        ..headers.addAll(original.headers)
+        ..maxRedirects = original.maxRedirects
+        ..persistentConnection = original.persistentConnection
+        ..encoding = original.encoding
+        ..bodyBytes =
+            original.bodyBytes; // References same memory, no deep copy
+    }
+    // We cannot safely retry MultipartRequest (File Uploads) or
+    // StreamedRequest because the data stream is single-use and already consumed.
+    return null;
   }
 
   @override
