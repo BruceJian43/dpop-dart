@@ -1,7 +1,7 @@
-import 'dart:io';
-
 import 'package:http/http.dart' as http;
 import 'dpop_generator.dart';
+
+const int _httpStatusUnauthorized = 401;
 
 class DPopHttpClient extends http.BaseClient {
   final http.Client _httpClient;
@@ -29,7 +29,7 @@ class DPopHttpClient extends http.BaseClient {
     final response = await _httpClient.send(request);
     _updateNonce(response.headers);
 
-    if (response.statusCode != HttpStatus.unauthorized ||
+    if (response.statusCode != _httpStatusUnauthorized ||
         !response.headers.containsKey('dpop-nonce')) {
       // No need to handle nonce retry logic here.
       return response;

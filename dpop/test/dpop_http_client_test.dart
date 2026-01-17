@@ -1,10 +1,12 @@
 import 'dart:convert';
-import 'dart:io';
 
 import 'package:dpop/dpop.dart';
 import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
 import 'package:test/test.dart';
+
+const int _httpStatusUnauthorized = 401;
+const int _httpStatusOk = 200;
 
 void main() {
   group('DPopHttpClient', () {
@@ -26,7 +28,7 @@ void main() {
         expect(payload['htu'], 'https://api.example.com/test');
         expect(payload['htm'], 'GET');
 
-        return http.Response('OK', HttpStatus.ok);
+        return http.Response('OK', _httpStatusOk);
       });
 
       final client = DPopHttpClient(client: mockInner, generator: generator);
@@ -34,7 +36,7 @@ void main() {
       final response = await client.get(
         Uri.parse('https://api.example.com/test'),
       );
-      expect(response.statusCode, HttpStatus.ok);
+      expect(response.statusCode, _httpStatusOk);
     });
 
     test(
@@ -49,7 +51,7 @@ void main() {
             utf8.decode(base64Url.decode(base64.normalize(parts[1]))),
           );
           expect(payload.containsKey('ath'), isTrue);
-          return http.Response('OK', HttpStatus.ok);
+          return http.Response('OK', _httpStatusOk);
         });
 
         final client = DPopHttpClient(
@@ -66,7 +68,7 @@ void main() {
       final mockInner = MockClient((request) async {
         expect(request.headers.containsKey('DPoP'), isTrue);
         expect(request.headers.containsKey('Authorization'), isFalse);
-        return http.Response('OK', HttpStatus.ok);
+        return http.Response('OK', _httpStatusOk);
       });
 
       final client = DPopHttpClient(client: mockInner, generator: generator);
@@ -87,7 +89,7 @@ void main() {
             expect(request.headers.containsKey('DPoP'), isTrue);
             return http.Response(
               'Unauthorized',
-              HttpStatus.unauthorized,
+              _httpStatusUnauthorized,
               headers: {'dpop-nonce': expectedNonce},
             );
           }
@@ -98,7 +100,7 @@ void main() {
               utf8.decode(base64Url.decode(base64.normalize(parts[1]))),
             );
             expect(payload['nonce'], expectedNonce);
-            return http.Response('Success', HttpStatus.ok);
+            return http.Response('Success', _httpStatusOk);
           }
 
           throw Exception('Too many calls');
