@@ -23,7 +23,6 @@ Use `DPopHttpClient` to automatically generate proofs, attach headers, and handl
 
 ```dart
 import 'package:dpop/dpop.dart';
-import 'package:http/http.dart' as http;
 
 void main() async {
   // By default, this generates a fresh key pair for the session.
