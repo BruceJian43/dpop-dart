@@ -1,6 +1,6 @@
 name: dpop
 description: A pure Dart implementation of RFC 9449 (DPoP). Supports automatic proof generation, signing, and nonce retries for HTTP requests.
-version: 0.0.1
+version: 0.1.0
 repository: https://github.com/BruceJian43/dpop-dart
 
 environment:
