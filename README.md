@@ -35,7 +35,7 @@ void main() async {
   try {
     // The client automatically adds the 'DPoP' header to this request.
     final response = await client.get(
-      Uri.parse('https://api.example.com/resource'),
+      Uri.parse('https://pub.dev/'),
     );
     print('Status: ${response.statusCode}');
     print('Body: ${response.body}');
