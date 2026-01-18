@@ -1,3 +1,7 @@
+## 0.1.1
+
+* Added flutter dependency in pubspec.yaml explicitly.
+
 ## 0.1.0
 
 * Released as Flutter package.
